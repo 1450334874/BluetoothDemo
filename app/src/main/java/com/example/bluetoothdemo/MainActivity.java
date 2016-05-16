@@ -84,9 +84,12 @@ public class MainActivity extends AppCompatActivity {
         searchbtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                hinttv.setVisibility(View.GONE);
-                deviceList.setVisibility(View.VISIBLE);
-                myIBinder.startSearch();
+                if (myIBinder.startSearch()) {
+                    hinttv.setVisibility(View.GONE);
+                    deviceList.setVisibility(View.VISIBLE);
+                    mBluetoothDeviceList.clear();
+                    mDeviceListAdapter.notifyDataSetChanged();
+                }
             }
         });
         mDeviceListAdapter.setItemClick(new DeviceListAdapter.ItemClick() {
@@ -132,8 +135,17 @@ public class MainActivity extends AppCompatActivity {
 
                     Log.e(TAG, "find device:" + device.getName()
                             + device.getAddress());
-                    mBluetoothDeviceList.add(device);
-                    mDeviceListAdapter.notifyItemRangeChanged(1, 2);
+                    boolean isHave = false;
+                    for(BluetoothDevice mDevice : mBluetoothDeviceList){
+                        if(mDevice.getAddress().equals(device.getAddress())){
+                            isHave = true;
+                        }
+                    }
+                    if(!isHave){
+                        mBluetoothDeviceList.add(device);
+                        mDeviceListAdapter.notifyItemRangeChanged(mBluetoothDeviceList.size(), mBluetoothDeviceList.size()+1);
+                    }
+
                 }
             }
             //搜索完成
@@ -146,7 +158,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
-
 
 
 }
