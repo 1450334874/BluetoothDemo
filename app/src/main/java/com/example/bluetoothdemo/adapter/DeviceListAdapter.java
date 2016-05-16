@@ -58,6 +58,7 @@ public class DeviceListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
             @Override
             public void onClick(View v) {
                 itemClick.onItemClick(device);
+
             }
         });
 
