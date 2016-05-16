@@ -17,13 +17,18 @@ public class BluetoothServerThread extends Thread {
     private BluetoothServerSocket serverSocket = null;
     private BluetoothSocket bluetoothSocket;
     private MyBluetoothSocket myBluetoothSocket;
+    private BluetoothAdapter mAdapter;
 
     public BluetoothServerThread(BluetoothAdapter mAdapter, MyBluetoothSocket myBluetoothSocket) {
+        this.mAdapter = mAdapter;
         this.myBluetoothSocket = myBluetoothSocket;
         try {
-            serverSocket = mAdapter.listenUsingRfcommWithServiceRecord(Appconfig.SERVICE_NAME, java.util.UUID.fromString(Appconfig.UUID));
+            if (mAdapter.isEnabled()) {
+                serverSocket = mAdapter.listenUsingRfcommWithServiceRecord(Appconfig.SERVICE_NAME, java.util.UUID.fromString(Appconfig.UUID));
+            }
         } catch (IOException e) {
             Log.e("------------", "创建服务端失败！");
+            Log.e("sss", e.toString());
         }
     }
 
@@ -35,6 +40,9 @@ public class BluetoothServerThread extends Thread {
     public void run() {
         while (true) {
             try {
+                if(!mAdapter.isEnabled()){
+                    break;
+                }
                 bluetoothSocket = serverSocket.accept();
                 while (bluetoothSocket != null) {//如果有设备连接了
                     myBluetoothSocket.getBluetoothSocket(bluetoothSocket);

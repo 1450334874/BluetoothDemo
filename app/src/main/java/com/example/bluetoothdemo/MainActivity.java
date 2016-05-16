@@ -6,11 +6,14 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -24,49 +27,49 @@ import android.widget.Toast;
 import com.example.bluetoothdemo.Thread.BluetoothServerThread;
 import com.example.bluetoothdemo.Thread.BluetoothThread;
 import com.example.bluetoothdemo.adapter.DeviceListAdapter;
+import com.example.bluetoothdemo.service.BluetoothService;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
-    private static int OPEN_BLUETOOTH = 1;//打开蓝牙
-    private static int REQUEST_DISCOVERABLE = 2;//
     private List<BluetoothDevice> mBluetoothDeviceList;//存放搜索到的设备
-    private BluetoothAdapter mAdapter;
+
     private RecyclerView deviceList;//显示设备列表
     private TextView hinttv;//提示
     private Button searchbtn;
     private DeviceListAdapter mDeviceListAdapter;
-    private BluetoothServerThread bluetoothServerThread;//监听连接的线程
-    private BluetoothThread bluetoothThread;//主动连接别人的线程
+    private BluetoothService.MyIBinder myIBinder;
 
-
-    Handler handler = new Handler(){
+    private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what){
-                case 1://连接服务器端成功
-                    Toast.makeText(MainActivity.this, "连接服务器端成功", Toast.LENGTH_SHORT).show();
-                    break;
-                case 2://客户端连接成功
-                    Toast.makeText(MainActivity.this, "客户端连接成功", Toast.LENGTH_SHORT).show();
-                    break;
-            }
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            myIBinder = (BluetoothService.MyIBinder) service;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
         }
     };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-
         registerBlueReceiver();
-        initBluetoothAdapter();
-
         mBluetoothDeviceList = new ArrayList<>();
         initView();
+        initService();
+
+    }
+
+    private void initService() {
+        Intent startService = new Intent(MainActivity.this, BluetoothService.class);
+        startService(startService);
+        bindService(startService, serviceConnection, BIND_AUTO_CREATE);
     }
 
     /**
@@ -83,51 +86,17 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 hinttv.setVisibility(View.GONE);
                 deviceList.setVisibility(View.VISIBLE);
-                mAdapter.startDiscovery();//开始搜索
+                myIBinder.startSearch();
             }
         });
         mDeviceListAdapter.setItemClick(new DeviceListAdapter.ItemClick() {
             @Override
             public void onItemClick(BluetoothDevice device) {
-                if(bluetoothThread!=null){
-                    bluetoothThread.cancel();
-                }
-                bluetoothThread = new BluetoothThread(device, mAdapter, new BluetoothThread.MyBluetoothSocket() {
-                    @Override
-                    public void getBluetoothSocket(BluetoothSocket bluetoothSocket) {
-                        if (bluetoothSocket != null) {
-                            handler.sendEmptyMessage(1);
-                        }
-                    }
-                });
-                bluetoothThread.start();
+                myIBinder.connectionDevice(device);
             }
         });
 
-        bluetoothServerThread = new BluetoothServerThread(mAdapter, new BluetoothServerThread.MyBluetoothSocket() {
-            @Override
-            public void getBluetoothSocket(BluetoothSocket bluetoothSocket) {
-                if (bluetoothSocket != null) {
-                    handler.sendEmptyMessage(2);
-                }
-            }
-        });
-        bluetoothServerThread.start();//开始监听其他的客户端连接
 
-
-    }
-
-    /**
-     * 初始化蓝牙适配器
-     */
-    private void initBluetoothAdapter() {
-        //获取蓝牙适配器
-        mAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (!mAdapter.isEnabled()) {//如果适配器不可用   没打开蓝牙
-            Intent enabler = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            enabler.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);//设置蓝牙可被其他设备搜索到的时间（最多300秒）
-            startActivityForResult(enabler, OPEN_BLUETOOTH);
-        }
     }
 
 
@@ -146,23 +115,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         unregisterReceiver(mReceiver);
+        unbindService(serviceConnection);
         super.onDestroy();
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == OPEN_BLUETOOTH) {
-            if (resultCode != Activity.RESULT_OK) {
-                Toast.makeText(MainActivity.this, "请手动开启蓝牙！", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(MainActivity.this, "蓝牙开启成功！", Toast.LENGTH_SHORT).show();
-                //设置蓝牙可以被搜索
-                Intent enabler = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-                startActivityForResult(enabler, REQUEST_DISCOVERABLE);
-            }
-        }
-        super.onActivityResult(requestCode, resultCode, data);
-    }
 
     BroadcastReceiver mReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -190,4 +146,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+
+
 }
