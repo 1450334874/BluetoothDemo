@@ -104,7 +104,8 @@ public class BluetoothService extends Service {
                 @Override
                 public void getBluetoothSocket(BluetoothSocket bluetoothSocket) {
                     if (bluetoothSocket != null) {
-                        handler.sendEmptyMessage(1);
+//                        handler.sendEmptyMessage(1);
+//                        Intent intent = new Intent(BluetoothService)
                     }
                 }
             });
