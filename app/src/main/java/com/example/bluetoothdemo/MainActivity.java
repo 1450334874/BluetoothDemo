@@ -28,6 +28,7 @@ import com.example.bluetoothdemo.Thread.BluetoothServerThread;
 import com.example.bluetoothdemo.Thread.BluetoothThread;
 import com.example.bluetoothdemo.adapter.DeviceListAdapter;
 import com.example.bluetoothdemo.service.BluetoothService;
+import com.example.bluetoothdemo.util.DialogUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,6 +89,10 @@ public class MainActivity extends AppCompatActivity {
                     hinttv.setVisibility(View.GONE);
                     deviceList.setVisibility(View.VISIBLE);
                     mBluetoothDeviceList.clear();
+                    List<BluetoothDevice> deviceList  = myIBinder.getDevice();
+                    for (BluetoothDevice d : deviceList){
+                        mBluetoothDeviceList.add(d);
+                    }
                     mDeviceListAdapter.notifyDataSetChanged();
                 }
             }
@@ -95,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
         mDeviceListAdapter.setItemClick(new DeviceListAdapter.ItemClick() {
             @Override
             public void onItemClick(BluetoothDevice device) {
+                DialogUtil.showDialog(MainActivity.this,"状态","正在连接。。。",null);
                 myIBinder.connectionDevice(device);
             }
         });

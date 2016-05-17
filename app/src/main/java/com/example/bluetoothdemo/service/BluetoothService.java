@@ -13,8 +13,17 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.example.bluetoothdemo.ChatActivity;
 import com.example.bluetoothdemo.Thread.BluetoothServerThread;
 import com.example.bluetoothdemo.Thread.BluetoothThread;
+import com.example.bluetoothdemo.util.DialogUtil;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Created by Administrator on 2016/5/15.
@@ -23,6 +32,8 @@ public class BluetoothService extends Service {
     private BluetoothServerThread bluetoothServerThread;//监听连接的线程
     private BluetoothThread bluetoothThread;//主动连接别人的线程
     private BluetoothAdapter mAdapter;
+    private InputStream inputStream = null;
+    private OutputStream outputStream = null;
 
     Handler handler = new Handler() {
         @Override
@@ -73,7 +84,19 @@ public class BluetoothService extends Service {
             @Override
             public void getBluetoothSocket(BluetoothSocket bluetoothSocket) {
                 if (bluetoothSocket != null) {
-                    handler.sendEmptyMessage(2);
+                    try {
+                        inputStream = bluetoothSocket.getInputStream();
+                        outputStream = bluetoothSocket.getOutputStream();
+
+                        Intent intent = new Intent(BluetoothService.this, ChatActivity.class);
+                        intent.putExtra("device_name",bluetoothSocket.getRemoteDevice().getName());
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK );
+                        startActivity(intent);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+
                 }
             }
         });
@@ -96,16 +119,28 @@ public class BluetoothService extends Service {
          *
          * @param device
          */
-        public void connectionDevice(BluetoothDevice device) {
-            if (bluetoothThread != null) {
-                bluetoothThread.cancel();
-            }
+        public void connectionDevice(final BluetoothDevice device) {
+//            if (bluetoothThread != null) {
+//                bluetoothThread.cancel();
+//            }
+
             bluetoothThread = new BluetoothThread(device, mAdapter, new BluetoothThread.MyBluetoothSocket() {
                 @Override
                 public void getBluetoothSocket(BluetoothSocket bluetoothSocket) {
                     if (bluetoothSocket != null) {
 //                        handler.sendEmptyMessage(1);
-//                        Intent intent = new Intent(BluetoothService)
+                        try {
+                            inputStream = bluetoothSocket.getInputStream();
+                            outputStream = bluetoothSocket.getOutputStream();
+                            DialogUtil.dimissDialog();
+                            Intent intent = new Intent(BluetoothService.this, ChatActivity.class);
+                            intent.putExtra("device_name",device.getName());
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK );
+                            startActivity(intent);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+
                     }
                 }
             });
@@ -128,12 +163,26 @@ public class BluetoothService extends Service {
                     } catch (Exception e) {
                     }
                 }
+                // 如果正在搜索，就先取消搜索
+                if (mAdapter.isDiscovering()) {
+                    mAdapter.cancelDiscovery();
+                }
                 mAdapter.startDiscovery();//开始搜索
                 return true;
             }
         }
 
 
+        public List<BluetoothDevice> getDevice() {
+            List<BluetoothDevice> deviceList = new ArrayList<>();
+            Set<BluetoothDevice> devices = mAdapter.getBondedDevices();
+            if (devices.size() > 0) {
+                for (BluetoothDevice bluetoothDevice : devices) {
+                    deviceList.add(bluetoothDevice);
+                }
+            }
+            return deviceList;
+        }
     }
 
 

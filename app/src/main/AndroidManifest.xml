@@ -7,6 +7,8 @@
     <!--  允许程序连接配对过的蓝牙设备 -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
 
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
 
     <application
         android:allowBackup="true"
@@ -25,6 +27,7 @@
         </activity>
 
         <service android:name=".service.BluetoothService" />
+        <activity android:name=".ChatActivity"/>
     </application>
 
 </manifest>

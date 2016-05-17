@@ -35,7 +35,6 @@ public class BluetoothThread extends Thread {
     @Override
     public void run() {
         bluetoothAdapter.cancelDiscovery();//取消搜索  否则连接时可能导致失败
-
         try {
             bluetoothSocket.connect();//连接
             myBluetoothSocket.getBluetoothSocket(bluetoothSocket);
