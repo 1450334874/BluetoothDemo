@@ -16,6 +16,7 @@ import android.widget.Toast;
 import com.example.bluetoothdemo.ChatActivity;
 import com.example.bluetoothdemo.Thread.BluetoothServerThread;
 import com.example.bluetoothdemo.Thread.BluetoothThread;
+import com.example.bluetoothdemo.Thread.SendMessageThread;
 import com.example.bluetoothdemo.util.DialogUtil;
 
 import java.io.IOException;
@@ -34,6 +35,8 @@ public class BluetoothService extends Service {
     private BluetoothAdapter mAdapter;
     private InputStream inputStream = null;
     private OutputStream outputStream = null;
+    private SendMessageThread sendMessageThread;
+    private Getdata getdata;
 
     Handler handler = new Handler() {
         @Override
@@ -51,6 +54,10 @@ public class BluetoothService extends Service {
             }
         }
     };
+
+    public void setGetdata(Getdata getdata){
+        this.getdata = getdata;
+    }
 
     @Nullable
     @Override
@@ -100,8 +107,12 @@ public class BluetoothService extends Service {
                 }
             }
         });
+
         bluetoothServerThread.start();//开始监听其他的客户端连接
     }
+
+
+
 
     /**
      * 打开蓝牙
@@ -183,6 +194,36 @@ public class BluetoothService extends Service {
             }
             return deviceList;
         }
+
+
+        /**
+         * 获取当前Service的实例
+         * @return
+         */
+        public BluetoothService getService(){
+            return BluetoothService.this;
+        }
+
+        /**
+         * 写入信息
+         */
+        public void startChat(){
+
+            sendMessageThread = new SendMessageThread(outputStream,inputStream, new SendMessageThread.Get() {
+                @Override
+                public void getData(byte[] bytes) {
+                    getdata.getData(bytes);
+                }
+            });
+            sendMessageThread.start();
+        }
+        public void sendMess(String s){
+            sendMessageThread.write(s);
+        }
+    }
+
+    public interface Getdata{
+        void getData(byte[] bytes);
     }
 
 

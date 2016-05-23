@@ -47,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             myIBinder = (BluetoothService.MyIBinder) service;
+
         }
 
         @Override
