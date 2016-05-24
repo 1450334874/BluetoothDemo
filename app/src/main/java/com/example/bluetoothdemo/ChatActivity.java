@@ -5,7 +5,9 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.os.PersistableBundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -18,7 +20,11 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.example.bluetoothdemo.adapter.ChatListAdapter;
+import com.example.bluetoothdemo.modle.ChatModle;
 import com.example.bluetoothdemo.service.BluetoothService;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by Administrator on 2016/5/16.
@@ -30,6 +36,18 @@ public class ChatActivity extends AppCompatActivity {
     private Button send_btn;
     private BluetoothService.MyIBinder myIBinder;
     private BluetoothService bluetoothService;
+    private List<ChatModle> modleList = new ArrayList<>();
+
+    private Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case 1:
+                    newData(new ChatModle((String) msg.obj, ChatModle.type.left));
+                    break;
+            }
+        }
+    };
 
     private ServiceConnection serviceConnection = new ServiceConnection() {
         @Override
@@ -39,8 +57,11 @@ public class ChatActivity extends AppCompatActivity {
             bluetoothService.setGetdata(new BluetoothService.Getdata() {
                 @Override
                 public void getData(byte[] bytes) {
-                    String  s = new String(bytes);
-                   Log.e("sdf------------",s+"");
+                    String s = new String(bytes);
+                    Message message = new Message();
+                    message.what = 1;
+                    message.obj = s;
+                    handler.sendMessage(message);
                 }
             });
             myIBinder.startChat();//开启聊天线程
@@ -73,11 +94,24 @@ public class ChatActivity extends AppCompatActivity {
         send_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(!message_et.getText().toString().equals("")){//如果输入框不为空
+                if (!message_et.getText().toString().equals("")) {//如果输入框不为空
                     myIBinder.sendMess(message_et.getText().toString());
+                    newData(new ChatModle(message_et.getText().toString(), ChatModle.type.right));
+                    message_et.setText("");
                 }
             }
         });
+        chatListAdapter = new ChatListAdapter(modleList);
+        recyclerView.setAdapter(chatListAdapter);
+
+    }
+
+    private void newData(ChatModle modle){
+        modleList.add(modle);
+        chatListAdapter.notifyItemRangeChanged(modleList.size(), modleList.size()+1);
+//        chatListAdapter.notifyItemInserted(modleList.size());
+//        modleList.add(modleList.size(), modle);
+//        chatListAdapter.notifyItemRangeChanged(modleList.size(), chatListAdapter.getItemCount());
     }
 
     @Override
